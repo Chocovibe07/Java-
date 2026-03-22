@@ -1,0 +1,17 @@
+com\gdut\repair\mapper\UserMapper.class
+com\gdut\repair\util\PasswordUtil.class
+com\gdut\repair\util\RegexUtil.class
+com\gdut\repair\service\impl\RepairServiceImpl.class
+com\gdut\repair\controller\RepairController.class
+com\gdut\repair\controller\UserController.class
+com\gdut\repair\service\impl\UserServiceImpl.class
+com\gdut\repair\entity\Repair.class
+com\gdut\repair\service\RepairService.class
+com\gdut\repair\entity\User.class
+com\gdut\repair\mapper\RepairMapper.class
+com\gdut\repair\service\UserService.class
+com\gdut\repair\Main.class
+org\example\App.class
+com\gdut\repair\constant\RoleEnum.class
+com\gdut\repair\util\RepairStudentIdMigrationRunner.class
+com\gdut\repair\constant\RepairStatusEnum.class

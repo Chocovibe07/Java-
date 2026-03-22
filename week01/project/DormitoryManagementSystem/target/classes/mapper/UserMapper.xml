@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gdut.repair.mapper.UserMapper">
+
+    <!-- User 实体字段与 user 表字段映射关系。 -->
+    <resultMap id="UserResultMap" type="com.gdut.repair.entity.User">
+        <id property="id" column="id"/>
+        <result property="account" column="account"/>
+        <result property="password" column="password"/>
+        <result property="role" column="role"/>
+        <result property="dormBuilding" column="dorm_building"/>
+        <result property="dormRoom" column="dorm_room"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 注册：插入用户基础信息。 -->
+    <insert id="insert" parameterType="com.gdut.repair.entity.User">
+        INSERT INTO `user`(account, password, role, create_time, update_time)
+        VALUES(#{account}, #{password}, #{role}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 登录/查重：按账号查询用户。 -->
+    <select id="selectByAccount" parameterType="string" resultMap="UserResultMap">
+        SELECT id, account, password, role, dorm_building, dorm_room, create_time, update_time
+        FROM `user`
+        WHERE account = #{account}
+    </select>
+
+    <!-- 按主键查询用户。 -->
+    <select id="selectById" parameterType="long" resultMap="UserResultMap">
+        SELECT id, account, password, role, dorm_building, dorm_room, create_time, update_time
+        FROM `user`
+        WHERE id = #{id}
+    </select>
+
+    <!-- 绑定宿舍：更新 dorm_building / dorm_room，并刷新 update_time。 -->
+    <update id="bindDormById">
+        UPDATE `user`
+        SET dorm_building = #{dormBuilding},
+            dorm_room = #{dormRoom},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>
+

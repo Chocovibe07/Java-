@@ -1,0 +1,1 @@
+D:\Users\yiny\repo\org\mybatis\mybatis\3.5.19\mybatis-3.5.19.jar;D:\Users\yiny\repo\log4j\log4j\1.2.17\log4j-1.2.17.jar;D:\Users\yiny\repo\mysql\mysql-connector-java\5.1.49\mysql-connector-java-5.1.49.jar

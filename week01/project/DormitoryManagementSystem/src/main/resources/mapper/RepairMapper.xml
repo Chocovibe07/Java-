@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gdut.repair.mapper.RepairMapper">
+
+    <!-- Repair 实体与 repair 表的字段映射。status 在查询 SQL 中会转成枚举名字符串。 -->
+    <resultMap id="RepairResultMap" type="com.gdut.repair.entity.Repair">
+        <id property="id" column="id"/>
+        <result property="userId" column="student_id"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 新建报修单：status 使用 CASE 将枚举名映射为数据库中的数字编码。 -->
+    <insert id="insert" parameterType="com.gdut.repair.entity.Repair" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `repair`(student_id, description, status, create_time, update_time)
+        VALUES(
+            #{userId},
+            #{description},
+            CASE #{status}
+                WHEN 'PENDING' THEN 1
+                WHEN 'PROCESSING' THEN 2
+                WHEN 'FINISHED' THEN 3
+                WHEN 'CANCELED' THEN 4
+                ELSE 1
+            END,
+            #{createTime},
+            #{updateTime}
+        )
+    </insert>
+
+    <!-- 查某个学生账号的报修单：按 student_id(存账号) 过滤，并把数字状态反向映射为字符串。 -->
+    <select id="findByUserId" parameterType="string" resultMap="RepairResultMap">
+        SELECT id,
+               student_id,
+               description,
+               CASE status
+                   WHEN 1 THEN 'PENDING'
+                   WHEN 2 THEN 'PROCESSING'
+                   WHEN 3 THEN 'FINISHED'
+                   WHEN 4 THEN 'CANCELED'
+                   ELSE 'PENDING'
+               END AS status,
+               create_time,
+               update_time
+        FROM `repair`
+        WHERE student_id = #{userId}
+        ORDER BY id DESC
+    </select>
+
+    <!-- 管理员查看全部报修单。 -->
+    <select id="findAll" resultMap="RepairResultMap">
+        SELECT id,
+               student_id,
+               description,
+               CASE status
+                   WHEN 1 THEN 'PENDING'
+                   WHEN 2 THEN 'PROCESSING'
+                   WHEN 3 THEN 'FINISHED'
+                   WHEN 4 THEN 'CANCELED'
+                   ELSE 'PENDING'
+               END AS status,
+               create_time,
+               update_time
+        FROM `repair`
+        ORDER BY id DESC
+    </select>
+
+    <!-- 按状态筛选：先把传入状态名映射成数字，再在数据库中匹配。 -->
+    <select id="findByStatus" parameterType="string" resultMap="RepairResultMap">
+        SELECT id,
+               student_id,
+               description,
+               CASE status
+                   WHEN 1 THEN 'PENDING'
+                   WHEN 2 THEN 'PROCESSING'
+                   WHEN 3 THEN 'FINISHED'
+                   WHEN 4 THEN 'CANCELED'
+                   ELSE 'PENDING'
+               END AS status,
+               create_time,
+               update_time
+        FROM `repair`
+        WHERE status = CASE #{status}
+            WHEN 'PENDING' THEN 1
+            WHEN 'PROCESSING' THEN 2
+            WHEN 'FINISHED' THEN 3
+            WHEN 'CANCELED' THEN 4
+            ELSE -1
+        END
+        ORDER BY id DESC
+    </select>
+
+    <!-- 按主键查询单条报修单。 -->
+    <select id="findById" parameterType="long" resultMap="RepairResultMap">
+        SELECT id,
+               student_id,
+               description,
+               CASE status
+                   WHEN 1 THEN 'PENDING'
+                   WHEN 2 THEN 'PROCESSING'
+                   WHEN 3 THEN 'FINISHED'
+                   WHEN 4 THEN 'CANCELED'
+                   ELSE 'PENDING'
+               END AS status,
+               create_time,
+               update_time
+        FROM `repair`
+        WHERE id = #{id}
+    </select>
+
+    <!-- 更新状态：状态名转数字编码，同时刷新 update_time。 -->
+    <update id="updateStatus">
+        UPDATE `repair`
+        SET status = CASE #{status}
+                WHEN 'PENDING' THEN 1
+                WHEN 'PROCESSING' THEN 2
+                WHEN 'FINISHED' THEN 3
+                WHEN 'CANCELED' THEN 4
+                ELSE status
+            END,
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除报修单。 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM `repair` WHERE id = #{id}
+    </delete>
+
+    <!-- 统计 student_id 仍为纯数字的记录（说明还是旧的 user.id 写法）。 -->
+    <select id="countNumericStudentIdRows" resultType="int">
+        SELECT COUNT(*)
+        FROM `repair`
+        WHERE `student_id` REGEXP '^[0-9]+$'
+    </select>
+
+    <!-- 统计可迁移记录：旧 student_id 能匹配到 user.id。 -->
+    <select id="countConvertibleRows" resultType="int">
+        SELECT COUNT(*)
+        FROM `repair` r
+        INNER JOIN `user` u ON r.student_id = CAST(u.id AS CHAR)
+        WHERE r.student_id REGEXP '^[0-9]+$'
+    </select>
+
+    <!-- 将 student_id 字段改成字符串，后续才能存账号（如 3125004123）。 -->
+    <update id="alterStudentIdColumnToVarchar">
+        ALTER TABLE `repair`
+        MODIFY COLUMN `student_id` VARCHAR(32)
+    </update>
+
+    <!-- 批量迁移旧数据：repair.student_id(旧 user.id) -> user.account。 -->
+    <update id="migrateStudentIdToAccount">
+        UPDATE `repair` r
+        INNER JOIN `user` u ON r.student_id = CAST(u.id AS CHAR)
+        SET r.student_id = u.account
+        WHERE r.student_id REGEXP '^[0-9]+$'
+    </update>
+
+    <!-- 迁移后核对：student_id 若找不到对应 user.account，说明仍有异常数据。 -->
+    <select id="countRowsNotMappedToAccount" resultType="int">
+        SELECT COUNT(*)
+        FROM `repair` r
+        LEFT JOIN `user` u ON r.student_id = u.account
+        WHERE u.account IS NULL
+    </select>
+</mapper>
+
